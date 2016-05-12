@@ -6,7 +6,7 @@ An Ansible role for installing Apple Swift.
 Requirements
 ------------
 
-Ubuntu 12.04 or higher
+Ubuntu 14.04 or higher
 
 Role Variables
 --------------
@@ -38,8 +38,3 @@ License
 -------
 
 MIT
-
-Author Information
-------------------
-
-Alexey Pustobaev
