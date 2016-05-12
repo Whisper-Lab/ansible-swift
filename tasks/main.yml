@@ -1,0 +1,72 @@
+---
+- apt: pkg={{item}} update_cache=yes
+  with_items:
+    - clang
+    - libicu-dev
+- apt_key: url=https://swift.org/keys/all-keys.asc state=present
+
+- name: Check swift version is installed
+  command: "[ -d {{ansible_swift_root}}/swift-{{ansible_swift_version}}-{{ansible_swift_platform}} ]"
+  changed_when: false
+  failed_when: false
+  # Ansible 1.8 feature.
+  # warn: no
+  register: ansible_swift_installed
+
+- name: Download swift.
+  get_url: url=https://swift.org/builds/{{ansible_swift_platform_short}}/swift-{{ansible_swift_version}}/swift-{{ansible_swift_version}}-{{ansible_swift_platform}}.tar.gz dest=/tmp/swift-{{ansible_swift_version}}-{{ansible_swift_platform}}.tgz
+  when: ansible_swift_installed|failed or ansible_swift_reinstall
+
+- name: Create swift root dir.
+  file: path={{ansible_swift_root}} state=directory mode=0755
+  when: ansible_swift_installed|failed or ansible_swift_reinstall
+
+- name: Expand swift archive.
+  unarchive: src=/tmp/swift-{{ansible_swift_version}}-{{ansible_swift_platform}}.tgz dest={{ansible_swift_root}} copy=no
+  when: ansible_swift_installed|failed or ansible_swift_reinstall
+
+- name: Link swift version.
+  file: src={{ansible_swift_root}}/swift-{{ansible_swift_version}}-{{ansible_swift_platform}}/usr dest={{ansible_swift_root}}/current state=link force=yes
+  when: ansible_swift_installed|failed or ansible_swift_reinstall
+
+- name: Install swift profile
+  template: src=swift.sh.j2 dest=/etc/profile.d/swift.sh
+
+
+# Clone and install swift-corelibs-libdispatch
+- apt: pkg={{item}} update_cache=yes
+  with_items:
+    - libcurl4-gnutls-dev
+    - gcc-4.8
+    - g++-4.8
+    - libcurl3
+    - openssh-client
+    - automake
+    - autoconf
+    - build-essential
+    - clang
+    - libtool
+    - pkg-config
+    - libglib2.0-dev
+    - systemtap-sdt-dev
+    - libblocksruntime-dev
+    - libkqueue-dev
+    - libbsd-dev
+
+- name: Clone swift-corelibs-libdispatch
+  git: repo=https://github.com/apple/swift-corelibs-libdispatch.git
+       dest={{ansible_swift_corelibs_libdispatch_root}}/swift-corelibs-libdispatch
+       version=experimental/foundation
+       force=yes
+
+- name: Install swift-corelibs-libdispatch
+  shell: "git submodule init && git submodule update && sh ./autogen.sh && ./configure --with-swift-toolchain={{ansible_swift_root}}/swift-{{ansible_swift_version}}-{{ansible_swift_platform}}/usr --prefix={{ansible_swift_root}}/swift-{{ansible_swift_version}}-{{ansible_swift_platform}}/usr && make && make install"
+  args:
+    chdir: "{{ansible_swift_corelibs_libdispatch_root}}/swift-corelibs-libdispatch"
+
+
+- name: Fix permissions
+  file: path={{ansible_swift_root}}/swift-{{ansible_swift_version}}-{{ansible_swift_platform}}/usr/lib/swift/CoreFoundation
+        state=directory
+        mode="a+r"
+        recurse=yes

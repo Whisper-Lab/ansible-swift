@@ -1,0 +1,10 @@
+---
+ansible_swift_version: 2.2-SNAPSHOT-2016-01-06-a
+ansible_swift_platform: ubuntu15.10
+ansible_swift_platform_short: ubuntu1510
+ansible_swift_root: /opt/swift
+
+# Leave this at it's default.
+ansible_swift_reinstall: false
+
+ansible_swift_corelibs_libdispatch_root: /opt/swift-corelibs-libdispatch
